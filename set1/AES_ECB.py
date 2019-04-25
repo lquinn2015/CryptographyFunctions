@@ -3,6 +3,21 @@ import binascii
 
 
 
+def encrypt(s,key):
+	assert(len(key) % 16 == 0)
+	assert(len(s) % len(key) == 0)
+
+	cipher = AES.new(key,AES.MODE_ECB)
+	return cipher.encrypt(s)
+
+def decrypt(s,key):
+	assert(len(key) % 16 == 0)
+	assert(len(s) % len(key) == 0)
+
+	cipher = AES.new(key,AES.MODE_ECB)
+	return cipher.decrypt(s)
+
+
 def main():
 	
 	f = open('7.txt', 'r')
