@@ -7,6 +7,31 @@ def padPKCS7(s, size):
 		return s
 	return s + bytes([pad]* pad) 
 
+
+class Error(Exception):
+	pass
+
+class BadPaddingError(Error):
+	pass
+
+
+def stripPKCS7(s,size=16):
+	
+	padding_len = s[-1]
+
+	if padding_len >= size:
+		raise BadPaddingError
+
+	slen = len(s)
+	padding = s[slen - padding_len:slen]
+	for x in padding:
+		if x != padding_len:
+			raise BadPaddingError
+	
+	return s[:slen-padding_len]
+
+
+
 def ecb_encrypt(s,key):
 	size = len(key)
 	s = padPKCS7(s,size)
@@ -66,8 +91,8 @@ def cbc_decrypt(y,k, iv=b''):
 	plainText = b''
 	for i in range(len(blocks)):
 		plainText += plainBlocks[i]
-
-	return plainText
+	
+	return stripPKCS7(plainText,size)
 
 def XORBlocks(b1,b2):
 	return bytes([x^y for x,y in zip(b1,b2)])
@@ -76,10 +101,36 @@ def get_blocks(s, blocksize=16):
 	return [s[i:i+blocksize] for i in range(0, len(s), blocksize)]
 
 def main():
+	test_padding()
+	test_cbc()
+
+def test_cbc():
 	s = b'abcd' * 4 * 10 + b'a'
 	iv = b'\x42\x43\x44\x45\x42\x43\x44\x45\x42\x43\x44\x45\x42\x43\x44\x45' 
 	key = iv
 	y = cbc_encrypt(s,key,iv)
 	x = cbc_decrypt(y,key,iv)
+	print(x)
+
+
+def test_padding():
+	s = b'ICE ICE BABY'
+	x = padPKCS7(s,16)
+	assert(stripPKCS7(x) == b'ICE ICE BABY')
+
+	bad1 = b'ICE ICE BABY\x05\x05\x05\x05'
+	bad2 = b'ICE ICE BABY\x01\x02\x03\x04'
+
+	try:
+		stripPKCS7(bad1,16)
+	except BadPaddingError:
+		pass
+	try:
+		stripPKCS7(bad2,16)
+	except BadPaddingError:
+		pass
+
+	print("PaddingTest Passed")
+	return True
 
 #main()
