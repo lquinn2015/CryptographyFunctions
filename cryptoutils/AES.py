@@ -3,10 +3,9 @@ import binascii
 
 def padPKCS7(s, size):
 	pad = size - len(s)%size
-	if pad == 0 or pad == 16:
-		return s
-	return s + bytes([pad]* pad) 
-
+	if pad == 0 :
+		return s + bytes([size] * size)
+	return s + bytes([pad] * pad)
 
 class Error(Exception):
 	pass
@@ -19,17 +18,18 @@ def stripPKCS7(s,size=16):
 	
 	padding_len = s[-1]
 
-	if padding_len >= size:
+	if padding_len > size or padding_len == 0x00:
+		#print(s)
 		raise BadPaddingError
 
 	slen = len(s)
 	padding = s[slen - padding_len:slen]
 	for x in padding:
 		if x != padding_len:
+			#print(s)
 			raise BadPaddingError
 	
 	return s[:slen-padding_len]
-
 
 
 def ecb_encrypt(s,key):
@@ -100,9 +100,19 @@ def XORBlocks(b1,b2):
 def get_blocks(s, blocksize=16):
 	return [s[i:i+blocksize] for i in range(0, len(s), blocksize)]
 
+def union_blocks(blocks):
+	out = b''
+	for b in blocks:
+		out += b
+
+	return out
+	
+
 def main():
 	test_padding()
 	test_cbc()
+	s = b'a'*16 + b'b'*16 + b'c'*16 + b'd'*16
+	print(s == union_blocks(get_blocks(s)))
 
 def test_cbc():
 	s = b'abcd' * 4 * 10 + b'a'
@@ -118,6 +128,12 @@ def test_padding():
 	x = padPKCS7(s,16)
 	assert(stripPKCS7(x) == b'ICE ICE BABY')
 
+	s = b'a'*16
+	spad = s + b'\x10' * 16
+	x = padPKCS7(s,16)
+	assert(x == spad)
+	assert(stripPKCS7(x) == s)
+
 	bad1 = b'ICE ICE BABY\x05\x05\x05\x05'
 	bad2 = b'ICE ICE BABY\x01\x02\x03\x04'
 
@@ -129,6 +145,8 @@ def test_padding():
 		stripPKCS7(bad2,16)
 	except BadPaddingError:
 		pass
+
+	
 
 	print("PaddingTest Passed")
 	return True
