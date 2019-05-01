@@ -114,7 +114,7 @@ def ctr_encrypt(s, key, nonce,size=16):
     block_count = 0
     while len(keystream) <= len(s):
         block = nonce + block_count.to_bytes(8, byteorder='little')
-        keystream += AES.ecb_encrypt(block, key)[:size]
+        keystream += ecb_encrypt(block, key)[:size]
         block_count += 1
     return XORBytes(keystream, s)
 
